@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      NODE_ENV: dev
+      PORT: ${PORT}
+      DB_HOST: ${SFTV_MYSQL_HOST}
+      DB_PORT: ${SFTV_MYSQL_PORT}
+      DB_USER: ${SFTV_MYSQL_USER}
+      DB_PASSWORD: ${SFTV_MYSQL_PASSWORD}
+      DB_NAME: ${SFTV_MYSQL_DATABASE}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.2.0
+    restart: always
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${SFTV_MYSQL_DATABASE}
+      MYSQL_USER: ${SFTV_MYSQL_USER}
+      MYSQL_PASSWORD: ${SFTV_MYSQL_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+      DEFAULT_AUTHENTICATION_PLUGIN: caching_sha2_password
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    ports:
+      - 6379:6379
+    networks:
+      - app-network
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    external: true

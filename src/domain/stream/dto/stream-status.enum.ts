@@ -5,6 +5,6 @@ export enum StreamStatus {
 
 /** 한글 라벨 (표시용) */
 export const StreamStatusLabel: Record<StreamStatus, string> = {
-  [StreamStatus.LIVE]: 'LIVE',
-  [StreamStatus.FINISHED]: 'FINISHED',
+  [StreamStatus.LIVE]: '방송중',
+  [StreamStatus.FINISHED]: '방송종료',
 };

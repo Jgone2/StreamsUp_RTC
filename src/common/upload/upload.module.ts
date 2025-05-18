@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common';
 import { UploadService } from './upload.service';
 import { UploadController } from './upload.controller';
 import { S3Client } from '@aws-sdk/client-s3';
-import { AuthModule } from '../../auth/auth.module';
-import { UsersModule } from '../../users/users.module';
+import { UploadFacade } from './upload.facade';
 
 @Module({
   controllers: [UploadController],
@@ -21,7 +20,8 @@ import { UsersModule } from '../../users/users.module';
       },
     },
     UploadService,
+    UploadFacade,
   ],
-  exports: [UploadService],
+  exports: [UploadFacade],
 })
 export class UploadModule {}

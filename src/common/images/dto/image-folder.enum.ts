@@ -1,4 +1,3 @@
 export enum ImageFolderEnum {
-  PROFILE = 'profileImg',
-  REVIEW = 'review',
+  THUMBNAIL = 'thumbnail',
 }

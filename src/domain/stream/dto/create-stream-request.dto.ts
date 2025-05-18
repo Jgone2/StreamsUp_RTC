@@ -5,15 +5,15 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  Matches,
   ArrayMaxSize,
 } from 'class-validator';
 import { ApiProperty, ApiTags } from '@nestjs/swagger';
+import { Express } from 'express';
 import { Category } from './category.enum';
 import { StreamStatus } from './stream-status.enum';
 
 @ApiTags('StreamCreateRequestDto')
-export class StreamCreateRequestDto {
+export class CreateStreamRequestDto {
   @ApiProperty({
     description: '스트리밍 제목',
     example: '3대 500kg 도전!!',
@@ -44,13 +44,12 @@ export class StreamCreateRequestDto {
   description?: string;
 
   @ApiProperty({
-    description: '썸네일 URL',
+    description: '썸네일 이미지 파일',
     example: 'https://example.com/thumbnail.jpg',
     required: false,
   })
   @IsOptional()
-  @Matches(/^https?:\/\/.+/i, { message: '유효한 URL 형식이어야 합니다.' })
-  thumbnailUrl?: string;
+  thumbnailFile?: Express.Multer.File;
 
   @ApiProperty({
     description: '태그 목록(최대 5개)',
@@ -66,6 +65,5 @@ export class StreamCreateRequestDto {
   @IsOptional()
   tags?: string[];
 
-  /** 생성 시 상태는 고정(LIVE)이므로 Swagger‧DB 양쪽에 명시해 둡니다 */
   readonly status: StreamStatus = StreamStatus.LIVE;
 }

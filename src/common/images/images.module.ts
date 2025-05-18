@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ImagesService } from './images.service';
 import { ImagesController } from './images.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ImageEntity } from './entities/image.entity';
-import { UploadModule } from '../upload/upload.module';
+import { ImagesFacade } from './images.facade';
+import { UploadFacade } from '../upload/upload.facade';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ImageEntity]), UploadModule],
+  imports: [UploadFacade],
   controllers: [ImagesController],
-  providers: [ImagesService],
-  exports: [ImagesService],
+  providers: [ImagesService, ImagesFacade],
+  exports: [ImagesFacade],
 })
 export class ImagesModule {}

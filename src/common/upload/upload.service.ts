@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import * as sharp from 'sharp';
 import { ImageFolderEnum } from '../images/dto/image-folder.enum';
+import { ImageResponseDto } from '../images/dto/image-response.dto';
 
 @Injectable()
 export class UploadService {
@@ -36,13 +37,13 @@ export class UploadService {
     userId: string,
     file: Express.Multer.File,
     folderType: ImageFolderEnum,
-  ): Promise<{ userId: string; key: string; fileUrl: string }> {
+  ): Promise<ImageResponseDto> {
     await this.verifyMimeType(file);
 
     let fileBuffer: Buffer;
     let fileName: string;
 
-    console.log(`file.mimetype: ${file.mimetype}`);
+    console.log(`✅ file.mimetype: ${file.mimetype}`);
     if (file.mimetype !== 'image/webp') {
       fileBuffer = await this.convertImageToWebp(file);
       fileName = this.setFileName(file);
@@ -140,7 +141,7 @@ export class UploadService {
   private async verifyMimeType(file: Express.Multer.File) {
     if (!this.allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
-        '지원하지 않는 파일 형식입니다. 이미지 파일만 업로드할 수 있습니다.',
+        '🔴 지원하지 않는 파일 형식입니다. 이미지 파일만 업로드할 수 있습니다.',
       );
     }
   }

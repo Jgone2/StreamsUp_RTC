@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { StreamModule } from './domain/stream/stream.module';
 import { StreamTagModule } from './domain/stream-tag/stream-tag.module';
+import { AuthModule } from './common/auth/auth.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { StreamTagModule } from './domain/stream-tag/stream-tag.module';
     PrismaModule,
     StreamModule,
     StreamTagModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

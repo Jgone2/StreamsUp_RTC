@@ -41,7 +41,7 @@ export class CreateStreamRequestDto {
   @IsString()
   @IsOptional()
   @MaxLength(500)
-  description?: string;
+  description: string;
 
   @ApiProperty({
     description: '썸네일 이미지 파일',
@@ -49,7 +49,7 @@ export class CreateStreamRequestDto {
     required: false,
   })
   @IsOptional()
-  thumbnailFile?: Express.Multer.File;
+  thumbnailFile: Express.Multer.File;
 
   @ApiProperty({
     description: '태그 목록(최대 5개)',

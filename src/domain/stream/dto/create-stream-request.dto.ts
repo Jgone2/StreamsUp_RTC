@@ -36,7 +36,6 @@ export class CreateStreamRequestDto {
     description: '스트리밍 설명',
     example: '3대 500kg 달성하는 그 날까지!',
     maxLength: 500,
-    required: false,
   })
   @IsString()
   @IsOptional()
@@ -46,7 +45,6 @@ export class CreateStreamRequestDto {
   @ApiProperty({
     description: '썸네일 이미지 파일',
     example: 'https://example.com/thumbnail.jpg',
-    required: false,
   })
   @IsOptional()
   thumbnailFile: Express.Multer.File;

@@ -14,7 +14,7 @@ export class UploadFacade {
    * @param file    Multer 업로드 파일 객체
    */
   async uploadThumbnail(
-    userId: string,
+    userId: number,
     file: Express.Multer.File,
   ): Promise<ImageResponseDto> {
     return await this.uploadService.uploadToS3(
@@ -22,5 +22,13 @@ export class UploadFacade {
       file,
       ImageFolderEnum.THUMBNAIL,
     );
+  }
+
+  /**
+   * 썸네일 이미지를 삭제.
+   *
+   */
+  async deleteThumbnail(key: string) {
+    return await this.uploadService.deleteFromS3(key);
   }
 }

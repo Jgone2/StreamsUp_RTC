@@ -9,7 +9,7 @@ export class StreamController {
 
   @Post()
   @UploadFileInterceptor()
-  create(@Body() createStreamDto: CreateStreamRequestDto, userId: string) {
+  create(@Body() createStreamDto: CreateStreamRequestDto, userId: number) {
     return this.streamService.createStream(createStreamDto, userId);
   }
 

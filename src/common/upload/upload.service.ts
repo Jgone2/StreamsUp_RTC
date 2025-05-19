@@ -34,7 +34,7 @@ export class UploadService {
    * @param folderType
    */
   async uploadToS3(
-    userId: string,
+    userId: number,
     file: Express.Multer.File,
     folderType: ImageFolderEnum,
   ): Promise<ImageResponseDto> {

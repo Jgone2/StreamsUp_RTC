@@ -8,7 +8,11 @@ export class ImagesFacade {
    * @param id
    * @param file
    */
-  async uploadStreamThumbnail(id: string, file: Express.Multer.File) {
+  async uploadStreamThumbnail(id: number, file: Express.Multer.File) {
     return await this.imagesService.uploadStreamThumbnailImage(id, file);
+  }
+
+  async deleteStreamThumbnail(key: string) {
+    return await this.imagesService.deleteStreamThumbnail(key);
   }
 }

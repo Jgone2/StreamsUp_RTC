@@ -1,5 +1,5 @@
 export class ImageResponseDto {
-  userId: string;
+  userId: number;
   key: string;
   fileUrl: string;
 }

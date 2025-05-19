@@ -4,7 +4,7 @@ import { StreamStatus } from '../dto/stream-status.enum';
 
 export class Stream {
   @ApiProperty({ example: 101 })
-  streamId: number;
+  id: number;
 
   @ApiProperty({ example: 1 })
   userId: number;
@@ -16,7 +16,13 @@ export class Stream {
   category: Category;
 
   @ApiProperty({ example: '다익스트라 풀이를 라이브로 설명합니다' })
-  description?: string;
+  description: string;
+
+  @ApiProperty({ example: 'https://example.com/thumbnail.jpg' })
+  thumbnailUrl: string;
+
+  @ApiProperty({ example: 'thumbnail/thumbnail.jpg' })
+  thumbnailUrlImageKey: string;
 
   @ApiProperty({ enum: StreamStatus, example: StreamStatus.LIVE })
   status: StreamStatus;

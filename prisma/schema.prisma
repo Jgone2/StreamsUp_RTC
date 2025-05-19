@@ -58,6 +58,17 @@ model Stream {
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
   user         User         @relation(fields: [userId], references: [userId])
+  tags   StreamTag[]
 
   @@map("streams")
+}
+
+model StreamTag {
+  streamId  Int
+  tagName   String   @db.VarChar(20)
+
+  stream    Stream   @relation(fields: [streamId], references: [streamId])
+
+  @@id([tagName])
+  @@map("stream_tags")
 }

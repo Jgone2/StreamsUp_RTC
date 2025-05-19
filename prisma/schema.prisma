@@ -29,6 +29,10 @@ enum StreamStatus {
   FINISHED
 }
 
+enum ImageFolder {
+  THUMBNAIL
+}
+
 model User {
   userId    Int      @id @default(autoincrement()) @map("user_id")
   username  String   @db.VarChar(50)
@@ -44,8 +48,9 @@ model Stream {
   userId       Int          @map("user_id")
   title        String       @db.VarChar(100)
   category     Category
-  description  String?      @db.Text
-  thumbnailUrl String?      @map("thumbnail_url") @db.VarChar(255)
+  description  String      @db.Text
+  thumbnailUrl String      @map("thumbnail_url") @db.VarChar(1000)
+  thumbnailImageKey String @map("thumbnail_image_key") @db.VarChar(255)
   status       StreamStatus @default(LIVE)
   startedAt    DateTime     @default(now()) @map("started_at")
   endedAt      DateTime?    @map("ended_at")

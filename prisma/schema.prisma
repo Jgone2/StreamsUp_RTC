@@ -44,7 +44,7 @@ model User {
 }
 
 model Stream {
-  streamId     Int          @id @default(autoincrement()) @map("stream_id")
+  id     Int          @id @default(autoincrement()) @map("stream_id")
   userId       Int          @map("user_id")
   title        String       @db.VarChar(100)
   category     Category
@@ -64,11 +64,11 @@ model Stream {
 }
 
 model StreamTag {
-  streamId  Int
-  tagName   String   @db.VarChar(20)
+  streamTagId  Int      @id @default(autoincrement())   @map("stream_tag_id")
+  streamId     Int      @map("stream_id")
+  tagName      String   @map("tag_name") @db.VarChar(20)
 
-  stream    Stream   @relation(fields: [streamId], references: [streamId])
+  stream       Stream   @relation(fields: [streamId], references: [id])
 
-  @@id([tagName])
   @@map("stream_tags")
 }

@@ -6,6 +6,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { StreamModule } from './domain/stream/stream.module';
 import { StreamTagModule } from './domain/stream-tag/stream-tag.module';
 import { AuthModule } from './common/auth/auth.module';
+import { StreamsGateway } from './common/rtc/streams/streams.gateway';
 
 @Module({
   imports: [
@@ -20,6 +21,6 @@ import { AuthModule } from './common/auth/auth.module';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, StreamsGateway],
 })
 export class AppModule {}

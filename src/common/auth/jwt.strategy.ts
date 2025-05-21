@@ -1,23 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { JwksClient, SigningKey } from 'jwks-rsa';
+import {
+  JwksClient,
+  // SigningKey
+} from 'jwks-rsa';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * JWKS 클라이언트 설정
  * - Auth 서버의 JWKS URI에서 공개키를 가져와 메모리 캐시
  * - cache: true 로 한 번 가져온 키를 cacheMaxAge 동안 재사용
  */
-const jwks = new JwksClient({
+/*const jwks = new JwksClient({
   jwksUri: process.env.JWKS_URI, // ex) https://auth.example.com/.well-known/jwks.json
   cache: true,
   cacheMaxEntries: 5, // 최대 5개의 키 캐시
   cacheMaxAge: 600_000, // 10분(밀리초 단위) 캐시 유지
-});
+});*/
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  /*constructor() {
     super({
       // 1) HTTP 헤더에서 Bearer 토큰 추출
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -25,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // 2) secretOrKeyProvider:
       //    - 토큰 헤더의 `kid` 값 사용해 올바른 공개키(SigningKey) 가져옴
       //    - jwks.getSigningKey() 내부에서 cache 처리
-      /**
+      /!**
        * 2. secretOrKeyProvider
        * - JWT 헤더에서 kid 추출 → JWKS 클라이언트에 kid 전달
        * - JWKS 클라이언트에서 SigningKey 반환
@@ -35,7 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
        * @param _req
        * @param rawJwtToken
        * @param done
-       */
+       *!/
       secretOrKeyProvider: async (
         _req,
         rawJwtToken: string,
@@ -58,6 +62,34 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // 3) 알고리즘 명시 (RS256만 허용)
       algorithms: ['RS256'],
     });
+  }*/
+
+  constructor(config: ConfigService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+
+      // ① env에 JWKS_URI 가 있으면 JWKS-RSA 로,
+      // ② 아니면 HS256 대칭키로 검증
+      secretOrKeyProvider: async (_req, rawTok, done) => {
+        const jwksUri = config.get<string>('JWKS_URI');
+        if (jwksUri) {
+          const jwks = new JwksClient({
+            jwksUri,
+            cache: true,
+            cacheMaxAge: 600000,
+          });
+          const decoded = JSON.parse(
+            Buffer.from(rawTok.split('.')[0], 'base64').toString(),
+          );
+          const key = await jwks.getSigningKey(decoded.kid);
+          done(null, key.getPublicKey());
+        } else {
+          done(null, config.get('JWT_SECRET'));
+        }
+      },
+
+      algorithms: config.get<string>('JWKS_URI') ? ['RS256'] : ['HS256'],
+    });
   }
 
   /**
@@ -67,6 +99,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    */
   async validate(payload: any) {
     // payload.userId가 문자열이면 Number()로 변환
-    return { userId: Number(payload.userId), email: payload.email };
+    return { userId: Number(payload.userId) };
   }
 }

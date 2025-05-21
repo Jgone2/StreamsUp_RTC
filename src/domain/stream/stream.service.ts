@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStreamRequestDto } from './dto/create-stream-request.dto';
 import { StreamStatus } from '../../common/enum/enums';
@@ -249,7 +249,7 @@ export class StreamService {
   private readonly verifyIsInLive = (existsLive: any): boolean => {
     if (existsLive) {
       this.logger.warn('🟣 User already has a live stream');
-      return true;
+      throw new BadRequestException('User already has a live stream');
     }
     return false;
   };
@@ -259,7 +259,9 @@ export class StreamService {
    * @param user
    */
   private readonly verifyExistUser = (user) => {
-    this.logger.error('🔴 User not found');
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) {
+      this.logger.error('🔴 User not found');
+      throw new NotFoundException('User not found');
+    }
   };
 }

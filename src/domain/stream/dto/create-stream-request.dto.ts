@@ -61,6 +61,4 @@ export class CreateStreamRequestDto {
   @MaxLength(20, { each: true })
   @IsOptional()
   tags?: string[];
-
-  readonly status: StreamStatus = StreamStatus.LIVE;
 }

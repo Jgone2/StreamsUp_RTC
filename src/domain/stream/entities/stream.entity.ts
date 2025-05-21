@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Category } from '../dto/category.enum';
-import { StreamStatus } from '../dto/stream-status.enum';
+import { Category, StreamStatus } from '../../../common/enum/enums';
 
 export class Stream {
   @ApiProperty({ example: 101 })

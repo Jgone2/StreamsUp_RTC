@@ -13,7 +13,7 @@ import { StreamsGateway } from './common/rtc/streams/streams.gateway';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      envFilePath: `.${process.env.NODE_ENV}.env`,
+      envFilePath: [`.env`],
     }),
     PrismaModule,
     StreamModule,

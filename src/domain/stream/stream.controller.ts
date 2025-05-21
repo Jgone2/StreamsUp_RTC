@@ -1,7 +1,14 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { StreamService } from './stream.service';
 import { CreateStreamRequestDto } from './dto/create-stream-request.dto';
-import { UploadFileInterceptor } from '../../common/upload/decorator/upload-file-interceptor.decorator';
 import { JwtAuthGuard } from 'src/common/auth/guard/jwt-auth.guard';
 import { LoginUser } from '../../common/auth/decorator/login-user.decorator';
 
@@ -11,12 +18,16 @@ export class StreamController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @UploadFileInterceptor()
+  @UseInterceptors(FileInterceptor('thumbnailFile'))
   create(
+    @UploadedFile() thumbnailFile: Express.Multer.File,
     @Body() createStreamDto: CreateStreamRequestDto,
     @LoginUser('id') userId: number,
   ) {
-    return this.streamService.createStream(createStreamDto, userId);
+    return this.streamService.createStream(
+      { ...createStreamDto, thumbnailFile },
+      userId,
+    );
   }
 
   /*@Get()

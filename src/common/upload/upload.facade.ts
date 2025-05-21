@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UploadService } from './upload.service';
-import { ImageFolderEnum } from '../images/dto/image-folder.enum';
+import { ImageFolderEnum } from '../enum/enums';
 import { ImageResponseDto } from '../images/dto/image-response.dto';
 
 @Injectable()

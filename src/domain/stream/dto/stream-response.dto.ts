@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Category } from './category.enum';
-import { StreamStatus } from './stream-status.enum';
+import { Category, StreamStatus } from '../../../common/enum/enums';
 
 export class StreamResponseDto {
   @ApiProperty({ example: 101 })
@@ -22,7 +21,7 @@ export class StreamResponseDto {
   thumbnailUrl: string;
 
   @ApiProperty({ example: 'thumbnail/thumbnail.jpg' })
-  thumbnailUrlImageKey: string;
+  thumbnailImageKey: string;
 
   @ApiProperty({ enum: StreamStatus, example: StreamStatus.LIVE })
   status: StreamStatus;

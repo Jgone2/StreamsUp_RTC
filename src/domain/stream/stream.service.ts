@@ -1,11 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStreamRequestDto } from './dto/create-stream-request.dto';
-import { StreamStatus } from './dto/stream-status.enum';
+import { StreamStatus } from '../../common/enum/enums';
 import { ImagesFacade } from '../../common/images/images.facade';
 import { ImageResponseDto } from '../../common/images/dto/image-response.dto';
 import { StreamResponseDto } from './dto/stream-response.dto';
-import { Category } from './dto/category.enum';
+import { Category } from '../../common/enum/enums';
 
 /**
  * TODO: Elastic Search 연동 검색 기능 추가
@@ -13,6 +13,7 @@ import { Category } from './dto/category.enum';
 @Injectable()
 export class StreamService {
   private readonly logger = new Logger(StreamService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly imageFacade: ImagesFacade,
@@ -39,7 +40,7 @@ export class StreamService {
     // 2) DB에 일단 스트림만 생성
     const created = await this.prisma.stream.create({
       data: {
-        userId,
+        user: { connect: { userId } },
         title: dto.title,
         category: dto.category,
         description: dto.description,
@@ -58,7 +59,7 @@ export class StreamService {
 
       // 4) 업로드 완료되면 DB 레코드 업데이트
       const updated = await this.prisma.stream.update({
-        where: { streamId: created.streamId },
+        where: { id: created.id },
         data: {
           thumbnailUrl: imageResponseDto.fileUrl,
           thumbnailImageKey: imageResponseDto.key,
@@ -69,7 +70,7 @@ export class StreamService {
       if (dto.tags?.length) {
         await this.prisma.streamTag.createMany({
           data: dto.tags.map((t: string) => ({
-            streamId: updated.streamId,
+            streamId: updated.id,
             tagName: t,
           })),
         });
@@ -103,10 +104,10 @@ export class StreamService {
     let stream;
     try {
       stream = await this.prisma.stream.update({
-        where: { streamId },
+        where: { id: streamId },
         data: {
           status: StreamStatus.FINISHED,
-          endAt: new Date(),
+          endedAt: new Date(),
         },
       });
     } catch (err) {
@@ -128,7 +129,7 @@ export class StreamService {
 
     // 1) 스트리밍 수정
     const stream = await this.prisma.stream.update({
-      where: { streamId },
+      where: { id: streamId },
       data: {
         title: dto.title,
         category: dto.category,
@@ -141,7 +142,7 @@ export class StreamService {
       await this.prisma.streamTag.deleteMany({ where: { streamId } });
       await this.prisma.streamTag.createMany({
         data: dto.tags.map((t: string) => ({
-          streamId: stream.streamId,
+          streamId: stream.id,
           tagName: t,
         })),
       });
@@ -196,7 +197,7 @@ export class StreamService {
    */
   async findStreamById(streamId: number): Promise<StreamResponseDto> {
     const stream = await this.prisma.stream.findUnique({
-      where: { streamId },
+      where: { id: streamId },
     });
 
     if (!stream) {

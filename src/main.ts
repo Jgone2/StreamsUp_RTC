@@ -10,7 +10,8 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
-    logger: ['debug', 'error', 'warn', 'log'],
+    cors: true,
+    logger: new Logger('Bootstrap'),
   });
 
   app.setGlobalPrefix('api');
@@ -22,15 +23,15 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(app.get(Reflector)),
-  );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // ConfigService로 PORT 가져오기 (없으면 3000)
   const config = app.get(ConfigService);
-  const port = Number(config.get('PORT', 3000));
+  const portEnv = config.get<string>('PORT');
+  const port =
+    portEnv && !Number.isNaN(Number(portEnv)) ? Number(portEnv) : 3000;
 
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port);
 
   Logger.log(
     `🚀 SSAFITV server is running on http://localhost:${port}/api`,

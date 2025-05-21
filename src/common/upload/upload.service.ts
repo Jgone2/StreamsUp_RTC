@@ -7,7 +7,6 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import * as sharp from 'sharp';
-import { ImageFolderEnum } from '../images/dto/image-folder.enum';
 import { ImageResponseDto } from '../images/dto/image-response.dto';
 
 @Injectable()
@@ -36,7 +35,7 @@ export class UploadService {
   async uploadToS3(
     userId: number,
     file: Express.Multer.File,
-    folderType: ImageFolderEnum,
+    folderType: 'THUMBNAIL',
   ): Promise<ImageResponseDto> {
     await this.verifyMimeType(file);
 

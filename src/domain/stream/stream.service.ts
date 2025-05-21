@@ -1,11 +1,17 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStreamRequestDto } from './dto/create-stream-request.dto';
-import { StreamStatus } from '../../common/enum/enums';
+import { Category, StreamStatus } from '../../common/enum/enums';
 import { ImagesFacade } from '../../common/images/images.facade';
 import { ImageResponseDto } from '../../common/images/dto/image-response.dto';
 import { StreamResponseDto } from './dto/stream-response.dto';
-import { Category } from '../../common/enum/enums';
+import { firstValueFrom } from 'rxjs';
+import { HttpService } from '@nestjs/axios';
 
 /**
  * TODO: Elastic Search 연동 검색 기능 추가
@@ -17,6 +23,7 @@ export class StreamService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly imageFacade: ImagesFacade,
+    private readonly http: HttpService,
   ) {}
 
   /**
@@ -40,7 +47,7 @@ export class StreamService {
     // 2) DB에 일단 스트림만 생성
     const created = await this.prisma.stream.create({
       data: {
-        user: { connect: { userId } },
+        userId,
         title: dto.title,
         category: dto.category,
         description: dto.description,
@@ -228,9 +235,15 @@ export class StreamService {
    * 사용자 존재 여부 확인
    * @param userId
    */
-  private readonly findUserByUserId = (userId: number) => {
-    return this.prisma.user.findUnique({ where: { userId } });
-  };
+  private async findUserByUserId(id: number) {
+    try {
+      const resp$ = this.http.get(`/user/${id}`);
+      const { data } = await firstValueFrom(resp$);
+      return data;
+    } catch (err) {
+      throw new NotFoundException(`User ${id} not found in Auth service`);
+    }
+  }
 
   /**
    * 동일 유저 LIVE 스트림 중복 검사

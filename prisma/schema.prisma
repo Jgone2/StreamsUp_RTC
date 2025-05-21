@@ -6,14 +6,12 @@
 
 generator client {
   provider = "prisma-client-js"
-  // output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
-
 
 enum Category {
   FITNESS
@@ -33,42 +31,31 @@ enum ImageFolder {
   THUMBNAIL
 }
 
-model User {
-  userId    Int      @id @default(autoincrement()) @map("user_id")
-  username  String   @db.VarChar(50)
-  password  String   @db.VarChar(255)
-  email     String   @unique @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  streams   Stream[]
-}
-
 model Stream {
-  id     Int          @id @default(autoincrement()) @map("stream_id")
-  userId       Int          @map("user_id")
-  title        String       @db.VarChar(100)
-  category     Category
-  description  String?      @db.Text
-  thumbnailUrl String?      @map("thumbnail_url") @db.VarChar(1000)
-  thumbnailImageKey String? @map("thumbnail_image_key") @db.VarChar(255)
-  status       StreamStatus @default(LIVE)
-  startedAt    DateTime     @default(now()) @map("started_at")
-  endedAt      DateTime?    @map("ended_at")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  id                Int          @id @default(autoincrement()) @map("stream_id")
+  userId            Int          @db.Int
+  title             String       @db.VarChar(100)
+  category          Category
+  description       String?      @db.Text
+  thumbnailUrl      String?      @map("thumbnail_url") @db.VarChar(1000)
+  thumbnailImageKey String?      @map("thumbnail_image_key") @db.VarChar(255)
+  status            StreamStatus @default(LIVE)
+  startedAt         DateTime     @default(now()) @map("started_at")
+  endedAt           DateTime?    @map("ended_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
 
-  user         User         @relation(fields: [userId], references: [userId])
-  tags   StreamTag[]
+  tags StreamTag[]
 
   @@map("streams")
 }
 
 model StreamTag {
-  id  Int      @id @default(autoincrement())   @map("stream_tag_id")
-  streamId     Int      @map("stream_id")
-  tagName      String   @map("tag_name") @db.VarChar(20)
+  id       Int    @id @default(autoincrement()) @map("stream_tag_id")
+  streamId Int    @map("stream_id")
+  tagName  String @map("tag_name") @db.VarChar(20)
 
-  stream       Stream   @relation(fields: [streamId], references: [id])
+  stream Stream @relation(fields: [streamId], references: [id])
 
   @@map("stream_tags")
 }

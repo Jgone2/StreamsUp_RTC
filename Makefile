@@ -39,9 +39,9 @@ docker-down:
 
 docker-clean-image:
 	docker rmi -f ssafricatv-app || true
+	docker rmi -f be_rtc-app || true
 
 fclean: clean docker-down docker-clean-image
-	docker rmi -f ssafricatv-app || true
 	docker network rm socket-network || true
 
 # 전체 재시작

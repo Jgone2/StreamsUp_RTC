@@ -7,6 +7,7 @@ import { StreamModule } from './domain/stream/stream.module';
 import { StreamTagModule } from './domain/stream-tag/stream-tag.module';
 import { AuthModule } from './common/auth/auth.module';
 import { StreamsGateway } from './common/rtc/streams/streams.gateway';
+import { HttpModule } from './common/http/http.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { StreamsGateway } from './common/rtc/streams/streams.gateway';
     StreamModule,
     StreamTagModule,
     AuthModule,
+    HttpModule,
   ],
   controllers: [AppController],
   providers: [AppService, StreamsGateway],

@@ -8,7 +8,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        baseURL: config.get<string>('AUTH_SERVER_URL'), // .env에 설정
+        // baseURL: config.get<string>('AUTH_SERVER_URL'), // .env에 설정
+        baseURL: 'http://jominjaegon-app-1:8082/api',
         timeout: 5000,
       }),
     }),

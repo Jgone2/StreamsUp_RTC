@@ -103,6 +103,9 @@ export class UploadService {
     file: Express.Multer.File,
     fileBuffer: Buffer,
   ) {
+    console.log(`Bucket Name: ${bucketName}`);
+    console.log(`Key: ${key}`);
+    console.log(`File MIME Type: ${file.mimetype}`);
     return new PutObjectCommand({
       Bucket: bucketName,
       Key: key,
@@ -157,6 +160,8 @@ export class UploadService {
     bucketRegion: string,
     key: string,
   ): string {
+    console.log(`Bucket Name: ${bucketName}`);
+    console.log(`Bucket Region: ${bucketRegion}`);
     return `https://${bucketName}.s3.${bucketRegion}.amazonaws.com/${encodeURIComponent(
       key,
     )}`;

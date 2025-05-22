@@ -1,5 +1,7 @@
 import { ImagesService } from './images.service';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class ImagesFacade {
   constructor(private readonly imagesService: ImagesService) {}
 

@@ -30,6 +30,7 @@ docker-build: prisma-generate
 
 docker-network:
 	docker network create socket-network || true
+	docker network create ssafitv-network || true
 
 docker-up: docker-network docker-build
 	docker-compose --env-file .dev.env up -d

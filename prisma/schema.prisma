@@ -33,7 +33,7 @@ enum ImageFolder {
 
 model Stream {
   id                Int          @id @default(autoincrement()) @map("stream_id")
-  userId            Int          @db.Int
+  userId            Int          @map("user_id") @db.Int
   title             String       @db.VarChar(100)
   category          Category
   description       String?      @db.Text

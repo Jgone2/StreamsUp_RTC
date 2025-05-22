@@ -5,6 +5,10 @@ import {
   // UseGuards,
   UseInterceptors,
   UploadedFile,
+  Delete,
+  Param,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StreamService } from './stream.service';
@@ -22,7 +26,7 @@ export class StreamController {
   // @UseGuards(TmpJwtGuard)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('thumbnailFile'))
-  create(
+  createStream(
     @UploadedFile() thumbnailFile: Express.Multer.File,
     @Body() createStreamDto: CreateStreamRequestDto,
     // @LoginUser('id') userId: number,
@@ -31,6 +35,15 @@ export class StreamController {
       { ...createStreamDto, thumbnailFile },
       1,
     );
+  }
+
+  @Post(':streamId/:userId')
+  @HttpCode(HttpStatus.OK)
+  endStream(
+    @Param('streamId') streamId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.streamService.endStream(+streamId, +userId);
   }
 
   /*@Get()
@@ -49,10 +62,5 @@ export class StreamController {
     @Body() updateStreamDto: UpdateStreamRequestDto,
   ) {
     return this.streamService.update(+id, updateStreamDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.streamService.remove(+id);
   }*/
 }

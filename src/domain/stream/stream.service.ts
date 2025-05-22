@@ -1,8 +1,8 @@
 import {
-  BadRequestException,
-  Injectable,
+  BadRequestException, HttpException,
+  Injectable, InternalServerErrorException,
   Logger,
-  NotFoundException,
+  NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStreamRequestDto } from './dto/create-stream-request.dto';
@@ -12,6 +12,7 @@ import { ImageResponseDto } from '../../common/images/dto/image-response.dto';
 import { StreamResponseDto } from './dto/stream-response.dto';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
+import { isAxiosError } from 'axios';
 
 /**
  * TODO: Elastic Search 연동 검색 기능 추가
@@ -56,9 +57,9 @@ export class StreamService {
     });
 
     // 3) S3에 업로드할 파일 정보
-    let imageResponseDto: ImageResponseDto;
+    // let imageResponseDto: ImageResponseDto;
     try {
-      // 3) S3에 업로드
+      /*// 3) S3에 업로드
       imageResponseDto = await this.imageFacade.uploadStreamThumbnail(
         userId,
         dto.thumbnailFile,
@@ -71,24 +72,24 @@ export class StreamService {
           thumbnailUrl: imageResponseDto.fileUrl,
           thumbnailImageKey: imageResponseDto.key,
         },
-      });
+      });*/
 
       // 5) 태그 삽입
       if (dto.tags?.length) {
         await this.prisma.streamTag.createMany({
           data: dto.tags.map((t: string) => ({
-            streamId: updated.id,
+            streamId: created.id,
             tagName: t,
           })),
         });
       }
 
-      return updated;
+      return created;
     } catch (err) {
       // 6) 어떤 단계에서든 에러가 나면, 업로드된 파일을 지워 줌
-      if (imageResponseDto?.key) {
-        await this.imageFacade.deleteStreamThumbnail(imageResponseDto?.key);
-      }
+      // if (imageResponseDto?.key) {
+      //   await this.imageFacade.deleteStreamThumbnail(imageResponseDto?.key);
+      // }
       // 썸네일 이슈가 발생해도 스트리밍은 가능하므로 스트리밍은 유지
       throw err;
     }
@@ -241,7 +242,23 @@ export class StreamService {
       const { data } = await firstValueFrom(resp$);
       return data;
     } catch (err) {
-      throw new NotFoundException(`User ${id} not found in Auth service`);
+      if (isAxiosError(err)) {
+        const status = err.response?.status;
+        // -------------------------------
+        // 401 Unauthorized
+        if (status === 401) {
+          throw new UnauthorizedException('Auth 서버 인증 실패 (401)');
+        }
+        // 404 Not Found
+        if (status === 404) {
+          throw new NotFoundException(`User ${id} not found`);
+        }
+        // 그 외 (500, 403 등)
+        throw new HttpException(`Auth 서버 에러 (${status})`, status);
+      }
+      // Axios 가 아닌 예기치 못한 에러
+      this.logger.error(err);
+      throw new InternalServerErrorException('내부 서버 오류');
     }
   }
 

@@ -18,8 +18,17 @@ import { SignalPayload } from './dto/signal-payload';
  * - 이후 메시지(offer/answer/ice) 전달과 룸(join/leave) 관리를 담당
  */
 @UseGuards(TmpJwtGuard)
-@WebSocketGateway({ namespace: '/rtc', cors: true })
-export class StreamsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway({
+  namespace: 'streams',
+  cors: {
+    origin: ['http://localhost:8082', 'http://localhost:5173'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+})
+export class StreamsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   private readonly logger = new Logger(StreamsGateway.name);
 
   /**
@@ -30,7 +39,7 @@ export class StreamsGateway implements OnGatewayConnection, OnGatewayDisconnect 
    */
   handleConnection(client: Socket): void {
     this.logger.log(
-      `Client connected: socketId=${client.id}, userId=${client.data.user.userId}`,
+      `🟢 Client connected: socketId=${client.id}, userId=${client.data.user.userId}`,
     );
   }
 
@@ -42,7 +51,7 @@ export class StreamsGateway implements OnGatewayConnection, OnGatewayDisconnect 
    */
   handleDisconnect(client: Socket): void {
     this.logger.log(
-      `Client disconnected: socketId=${client.id}, userId=${client.data.user.userId}`,
+      `🟣 Client disconnected: socketId=${client.id}, userId=${client.data.user.userId}`,
     );
     // 예: client.rooms.forEach(room => client.leave(room));
   }

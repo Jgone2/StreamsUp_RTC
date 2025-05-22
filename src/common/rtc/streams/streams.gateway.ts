@@ -10,6 +10,7 @@ import { TmpJwtGuard } from './guard/tmp-jwt.guard';
 import { Logger, UseGuards } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { SignalPayload } from './dto/signal-payload';
+import { StreamFacade } from '../../../domain/stream/stream.facade';
 
 /**
  * StreamsGateway
@@ -29,6 +30,7 @@ import { SignalPayload } from './dto/signal-payload';
 export class StreamsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
+  constructor(private readonly streamFacade: StreamFacade) {}
   private readonly logger = new Logger(StreamsGateway.name);
 
   /**
@@ -63,13 +65,16 @@ export class StreamsGateway
    * - 이로써 같은 streamId 를 가진 다른 피어들에게 시그널링 메시지를 보낼 수 있음
    */
   @SubscribeMessage('join')
-  handleJoin(
+  async handleJoin(
     @ConnectedSocket() client: Socket,
     @MessageBody('streamId') streamId: number,
-  ): void {
+  ): Promise<void> {
+    // 스트림 존재 여부 확인
+    await this.streamFacade.findStreamById(streamId);
     const room = `stream-${streamId}`;
     client.join(room);
     this.logger.log(`User ${client.data.user.userId} joined room ${room}`);
+    client.emit('joined', { streamId });
   }
 
   /**
@@ -86,6 +91,7 @@ export class StreamsGateway
     const room = `stream-${streamId}`;
     client.leave(room);
     this.logger.log(`User ${client.data.user.userId} left room ${room}`);
+    client.emit('left', { streamId });
   }
 
   /**

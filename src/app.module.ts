@@ -23,6 +23,6 @@ import { HttpModule } from './common/http/http.module';
     HttpModule,
   ],
   controllers: [AppController],
-  providers: [AppService, StreamsGateway],
+  providers: [AppService],
 })
 export class AppModule {}

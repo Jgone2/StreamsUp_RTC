@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { CorsMiddleware } from './common/middleware/cors.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  app.use(new CorsMiddleware().use);
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
@@ -25,13 +26,10 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const portEnv = config.get<string>('PORT');
 
-  const port =
-    portEnv && !Number.isNaN(Number(portEnv)) ? Number(portEnv) : 3000;
-  console.log(port + ' is Possible PORT');
-  await app.listen(port);
+  await app.listen(Number(portEnv));
   console.log(`start!`);
   Logger.log(
-    `🚀 SSAFITV server is running on http://localhost:${port}/api`,
+    `🚀 SSAFITV server is running on http://localhost:${portEnv}/api`,
     'Bootstrap',
   );
 }

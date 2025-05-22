@@ -37,16 +37,17 @@ export class StreamController {
     );
   }
 
-  @Post(':streamId/:userId')
+  @Post(':streamId')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  endStream(
+  async endStream(
     @Param('streamId') streamId: string,
-    @Param('userId') userId: string,
+    @LoginUser('userId') userId: number,
   ) {
-    return this.streamService.endStream(+streamId, +userId);
+    return this.streamService.endStream(+streamId, userId);
   }
 
-  @Get(':streamId/')
+  @Get(':streamId')
   @HttpCode(HttpStatus.OK)
   getStreamStatus(@Param('streamId') streamId: string) {
     return this.streamService.findStreamById(+streamId);

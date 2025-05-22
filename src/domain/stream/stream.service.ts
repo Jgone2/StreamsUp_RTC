@@ -107,7 +107,7 @@ export class StreamService {
     let stream;
     try {
       stream = await this.prisma.stream.update({
-        where: { id: streamId },
+        where: { id: streamId, userId: userId, status: StreamStatus.LIVE },
         data: {
           status: StreamStatus.FINISHED,
           endedAt: new Date(),

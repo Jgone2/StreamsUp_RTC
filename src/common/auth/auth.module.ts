@@ -3,7 +3,6 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwksClient } from 'jwks-rsa';
 import { JwtStrategy } from './jwt.strategy';
-import type { JwtSecretRequestType } from 'passport-jwt';
 import type { Algorithm } from 'jsonwebtoken';
 
 @Module({
@@ -14,9 +13,6 @@ import type { Algorithm } from 'jsonwebtoken';
       inject: [ConfigService],
       useFactory: (config: ConfigService): JwtModuleOptions => {
         const jwksUri = config.get<string>('JWKS_URI');
-        // 여기서 Algorithm 제네릭을 써서 반환 타입을 Algorithm 으로 고정
-        const algorithm = config.get<Algorithm>('JWT_ALGORITHM', 'HS256');
-
         if (jwksUri) {
           const jwks = new JwksClient({
             jwksUri,
@@ -25,26 +21,26 @@ import type { Algorithm } from 'jsonwebtoken';
             cacheMaxAge: 600_000,
           });
           return {
-            verifyOptions: { algorithms: [algorithm] },
-            secretOrKeyProvider: async (
-              _req: JwtSecretRequestType,
-              rawJwtToken: string | Buffer,
-            ): Promise<string> => {
-              const headerSegment = rawJwtToken.toString().split('.')[0];
+            secretOrKeyProvider: async (_req, rawJwtToken: string | Buffer) => {
+              const token = rawJwtToken.toString();
+              const [encodedHeader] = token.split('.');
               let header: { kid: string };
               try {
                 header = JSON.parse(
-                  Buffer.from(headerSegment, 'base64').toString(),
+                  Buffer.from(encodedHeader, 'base64').toString(),
                 );
               } catch (err: any) {
-                throw new Error(`잘못된 JWT 헤더: ${err.message}`);
+                throw new Error(`Invalid JWT header: ${err.message}`);
               }
               const key = await jwks.getSigningKey(header.kid);
               return key.getPublicKey();
             },
+            verifyOptions: { algorithms: ['RS256'] },
           };
         } else {
-          const secret = config.get<string>('JWT_SECRET_BASE64');
+          const secretBase64 = config.get<string>('JWT_SECRET_BASE64');
+          const secret = Buffer.from(secretBase64, 'base64').toString('utf8');
+          const algorithm = config.get<Algorithm>('JWT_ALGORITHM', 'HS256');
           return {
             secret,
             signOptions: { algorithm },
@@ -55,5 +51,6 @@ import type { Algorithm } from 'jsonwebtoken';
     }),
   ],
   providers: [JwtStrategy],
+  exports: [JwtModule],
 })
 export class AuthModule {}

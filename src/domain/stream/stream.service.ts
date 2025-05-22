@@ -1,18 +1,21 @@
 import {
-  BadRequestException, HttpException,
-  Injectable, InternalServerErrorException,
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
   Logger,
-  NotFoundException, UnauthorizedException,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateStreamRequestDto } from './dto/create-stream-request.dto';
 import { Category, StreamStatus } from '../../common/enum/enums';
 import { ImagesFacade } from '../../common/images/images.facade';
-import { ImageResponseDto } from '../../common/images/dto/image-response.dto';
 import { StreamResponseDto } from './dto/stream-response.dto';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { isAxiosError } from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * TODO: Elastic Search 연동 검색 기능 추가
@@ -23,6 +26,7 @@ export class StreamService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     private readonly imageFacade: ImagesFacade,
     private readonly http: HttpService,
   ) {}
@@ -58,41 +62,32 @@ export class StreamService {
 
     // 3) S3에 업로드할 파일 정보
     // let imageResponseDto: ImageResponseDto;
-    try {
-      /*// 3) S3에 업로드
-      imageResponseDto = await this.imageFacade.uploadStreamThumbnail(
-        userId,
-        dto.thumbnailFile,
-      );
+    /*// 3) S3에 업로드
+    imageResponseDto = await this.imageFacade.uploadStreamThumbnail(
+      userId,
+      dto.thumbnailFile,
+    );
 
-      // 4) 업로드 완료되면 DB 레코드 업데이트
-      const updated = await this.prisma.stream.update({
-        where: { id: created.id },
-        data: {
-          thumbnailUrl: imageResponseDto.fileUrl,
-          thumbnailImageKey: imageResponseDto.key,
-        },
-      });*/
+    // 4) 업로드 완료되면 DB 레코드 업데이트
+    const updated = await this.prisma.stream.update({
+      where: { id: created.id },
+      data: {
+        thumbnailUrl: imageResponseDto.fileUrl,
+        thumbnailImageKey: imageResponseDto.key,
+      },
+    });*/
 
-      // 5) 태그 삽입
-      if (dto.tags?.length) {
-        await this.prisma.streamTag.createMany({
-          data: dto.tags.map((t: string) => ({
-            streamId: created.id,
-            tagName: t,
-          })),
-        });
-      }
-
-      return created;
-    } catch (err) {
-      // 6) 어떤 단계에서든 에러가 나면, 업로드된 파일을 지워 줌
-      // if (imageResponseDto?.key) {
-      //   await this.imageFacade.deleteStreamThumbnail(imageResponseDto?.key);
-      // }
-      // 썸네일 이슈가 발생해도 스트리밍은 가능하므로 스트리밍은 유지
-      throw err;
+    // 5) 태그 삽입
+    if (dto.tags?.length) {
+      await this.prisma.streamTag.createMany({
+        data: dto.tags.map((t: string) => ({
+          streamId: created.id,
+          tagName: t,
+        })),
+      });
     }
+
+    return created;
   }
 
   /**
@@ -237,9 +232,13 @@ export class StreamService {
    * @param userId
    */
   private async findUserByUserId(id: number) {
+    const authBaseUrl = this.config.get<string>('AUTH_SERVER_URL');
+    const authUrl = `${authBaseUrl}/user/${id}`;
+    this.logger.log(`🟣 Auth 서버에 사용자 정보 요청: ${authUrl}`);
     try {
-      const resp$ = this.http.get(`/user/${id}`);
-      const { data } = await firstValueFrom(resp$);
+      // const resp$ = this.http.get(`/user/${id}`);
+      const { data } = await firstValueFrom(this.http.get(authUrl));
+      this.logger.log(`🟣 Auth 서버에서 사용자 정보 응답: ${data}`);
       return data;
     } catch (err) {
       if (isAxiosError(err)) {
@@ -254,10 +253,14 @@ export class StreamService {
           throw new NotFoundException(`User ${id} not found`);
         }
         // 그 외 (500, 403 등)
-        throw new HttpException(`Auth 서버 에러 (${status})`, status);
+        const code = status ?? 500;
+        throw new HttpException(
+          `Auth 서버 에러 (${code}), (${err.message})`,
+          code,
+        );
       }
       // Axios 가 아닌 예기치 못한 에러
-      this.logger.error(err);
+      this.logger.error(`🟣 ${err}`);
       throw new InternalServerErrorException('내부 서버 오류');
     }
   }

@@ -21,75 +21,36 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  /*constructor() {
-    super({
-      // 1) HTTP 헤더에서 Bearer 토큰 추출
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-
-      // 2) secretOrKeyProvider:
-      //    - 토큰 헤더의 `kid` 값 사용해 올바른 공개키(SigningKey) 가져옴
-      //    - jwks.getSigningKey() 내부에서 cache 처리
-      /!**
-       * 2. secretOrKeyProvider
-       * - JWT 헤더에서 kid 추출 → JWKS 클라이언트에 kid 전달
-       * - JWKS 클라이언트에서 SigningKey 반환
-       * - SigningKey.getPublicKey()로 공개키 추출
-       * - JWT 검증 시 공개키 사용
-       * - jwks.getSigningKey() 내부에서 cache 처리
-       * @param _req
-       * @param rawJwtToken
-       * @param done
-       *!/
-      secretOrKeyProvider: async (
-        _req,
-        rawJwtToken: string,
-        done: (err: Error | null, publicKey?: string) => void,
-      ) => {
-        try {
-          // 토큰 헤더(Base64) 디코딩 → kid 추출
-          const decodedHeader = JSON.parse(
-            Buffer.from(rawJwtToken.split('.')[0], 'base64').toString(),
-          );
-          // JWKS 클라이언트에 kid 전달 → SigningKey 반환
-          const key: SigningKey = await jwks.getSigningKey(decodedHeader.kid);
-          const pubKey = key.getPublicKey();
-          done(null, pubKey);
-        } catch (err) {
-          done(err as Error);
-        }
-      },
-
-      // 3) 알고리즘 명시 (RS256만 허용)
-      algorithms: ['RS256'],
-    });
-  }*/
-
   constructor(config: ConfigService) {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-
-      // ① env에 JWKS_URI 가 있으면 JWKS-RSA 로,
-      // ② 아니면 HS256 대칭키로 검증
-      secretOrKeyProvider: async (_req, rawTok, done) => {
-        const jwksUri = config.get<string>('JWKS_URI');
-        if (jwksUri) {
-          const jwks = new JwksClient({
-            jwksUri,
-            cache: true,
-            cacheMaxAge: 600000,
-          });
-          const decoded = JSON.parse(
-            Buffer.from(rawTok.split('.')[0], 'base64').toString(),
+    const jwksUri = config.get<string>('JWKS_URI');
+    const jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+    if (jwksUri) {
+      const jwks = new JwksClient({
+        jwksUri,
+        cache: true,
+        cacheMaxEntries: 5,
+        cacheMaxAge: 600_000,
+      });
+      super({
+        jwtFromRequest,
+        secretOrKeyProvider: async (_req, token, done) => {
+          const header = JSON.parse(
+            Buffer.from(token.split('.')[0], 'base64').toString(),
           );
-          const key = await jwks.getSigningKey(decoded.kid);
+          const key = await jwks.getSigningKey(header.kid);
           done(null, key.getPublicKey());
-        } else {
-          done(null, config.get('JWT_SECRET'));
-        }
-      },
-
-      algorithms: config.get<string>('JWKS_URI') ? ['RS256'] : ['HS256'],
-    });
+        },
+        algorithms: ['RS256'],
+      });
+    } else {
+      const secretBase64 = config.get<string>('JWT_SECRET_BASE64');
+      const secret = Buffer.from(secretBase64, 'base64').toString('utf8');
+      super({
+        jwtFromRequest,
+        secretOrKey: secret,
+        algorithms: ['HS256'],
+      });
+    }
   }
 
   /**
@@ -98,7 +59,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @returns validated user info (req.user에 할당)
    */
   async validate(payload: any) {
-    // payload.userId가 문자열이면 Number()로 변환
+    console.log('[JwtStrategy] validate payload:', payload);
+    // payload.sub가 문자열이면 Number()로 변환
     return { userId: Number(payload.userId) };
   }
 }

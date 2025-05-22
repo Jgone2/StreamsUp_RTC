@@ -2,38 +2,38 @@ import {
   Controller,
   Post,
   Body,
-  // UseGuards,
+  UseGuards,
   UseInterceptors,
   UploadedFile,
-  Delete,
   Param,
   HttpCode,
   HttpStatus,
+  Get,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StreamService } from './stream.service';
 import { CreateStreamRequestDto } from './dto/create-stream-request.dto';
-// import { JwtAuthGuard } from 'src/common/auth/guard/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/common/auth/guard/jwt-auth.guard';
 import { LoginUser } from '../../common/auth/decorator/login-user.decorator';
 import { ApiConsumes } from '@nestjs/swagger';
-// import { TmpJwtGuard } from '../../common/rtc/streams/guard/tmp-jwt.guard';
 
 @Controller('stream')
 export class StreamController {
   constructor(private readonly streamService: StreamService) {}
 
   @Post()
-  // @UseGuards(TmpJwtGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('thumbnailFile'))
-  createStream(
+  async createStream(
     @UploadedFile() thumbnailFile: Express.Multer.File,
     @Body() createStreamDto: CreateStreamRequestDto,
-    // @LoginUser('id') userId: number,
+    @LoginUser('userId') userId: number,
   ) {
+    console.log(`userId: ${userId}`);
     return this.streamService.createStream(
       { ...createStreamDto, thumbnailFile },
-      1,
+      userId,
     );
   }
 
@@ -44,6 +44,12 @@ export class StreamController {
     @Param('userId') userId: string,
   ) {
     return this.streamService.endStream(+streamId, +userId);
+  }
+
+  @Get(':streamId/')
+  @HttpCode(HttpStatus.OK)
+  getStreamStatus(@Param('streamId') streamId: string) {
+    return this.streamService.findStreamById(+streamId);
   }
 
   /*@Get()

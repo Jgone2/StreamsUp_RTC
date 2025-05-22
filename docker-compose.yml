@@ -11,20 +11,36 @@ services:
       - host.docker.internal:host-gateway
     environment:
       NODE_ENV: dev
+
+      # App
       PORT: ${PORT}
+      AUTH_SERVER_URL: ${AUTH_SERVER_URL}
+
+      # MySQL
       DATABASE_URL: "mysql://admin:tset@mysql:3306/sftv"
       DB_HOST: ${SFTV_MYSQL_HOST}
       DB_PORT: ${SFTV_MYSQL_PORT}
       DB_USER: ${SFTV_MYSQL_USER}
       DB_PASSWORD: ${SFTV_MYSQL_PASSWORD}
       DB_NAME: ${SFTV_MYSQL_DATABASE}
+
+      # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # AWS
       AWS_REGION: ${AWS_REGION}
       AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+
+      # File
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
+
+      # JWT
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
 
     # MySQL이 살아 있고 Redis가 시작된 뒤에만 기동
     depends_on:

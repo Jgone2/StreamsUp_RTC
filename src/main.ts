@@ -7,11 +7,27 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { CorsMiddleware } from './common/middleware/cors.middleware';
+import { JwtService } from '@nestjs/jwt';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+import { wsAuthMiddleware } from './common/middleware/ws-auth.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(new CorsMiddleware().use);
   app.setGlobalPrefix('api');
+
+  // --- WebSocket 핸드셰이크 인증 미들웨어 등록 시작 ---
+  const jwtService = app.get(JwtService);
+  const configService = app.get(ConfigService);
+  app.useWebSocketAdapter(
+    new (class extends IoAdapter {
+      createIOServer(port: number, options?: any) {
+        const server = super.createIOServer(port, options);
+        server.use(wsAuthMiddleware(jwtService, configService));
+        return server;
+      }
+    })(app),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -33,7 +49,4 @@ async function bootstrap() {
     'Bootstrap',
   );
 }
-
-bootstrap().then(() =>
-  console.log(`NestJS SSAFTIV Server Start PORT : ${process.env.PORT}`),
-);
+bootstrap();

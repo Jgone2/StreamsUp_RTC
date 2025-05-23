@@ -6,23 +6,26 @@ import {
   SubscribeMessage,
   WebSocketGateway,
 } from '@nestjs/websockets';
-import { TmpJwtGuard } from './guard/tmp-jwt.guard';
 import { Logger, UseGuards } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { SignalPayload } from './dto/signal-payload';
 import { StreamFacade } from '../../../domain/stream/stream.facade';
+import { WsJwtGuard } from '../../auth/guard/ws-jwt.guard';
 
+const AUTH_URL = process.env.AUTH_SERVER_URL;
+const FRONT_URL = process.env.FRONT_URL;
 /**
  * StreamsGateway
  * - namespace '/rtc' 로 WebSocket 연결을 받음
  * - TmpJwtGuard 로 테스트용 유저 정보를 client.data.user 에 심어둠
  * - 이후 메시지(offer/answer/ice) 전달과 룸(join/leave) 관리를 담당
  */
-@UseGuards(TmpJwtGuard)
+@UseGuards(WsJwtGuard)
 @WebSocketGateway({
   namespace: 'streams',
+  path: '/api/socket.io',
   cors: {
-    origin: ['http://localhost:8082', 'http://localhost:5173'],
+    origin: [AUTH_URL, FRONT_URL],
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -40,8 +43,16 @@ export class StreamsGateway
    *   “누가 접속했는지” 로그를 남김
    */
   handleConnection(client: Socket): void {
+    const user = client.data?.user;
+    if (!user) {
+      this.logger.warn(
+        `🟠 Unauthenticated socket tried to connect: socketId=${client.id}`,
+      );
+      client.disconnect(true);
+      return;
+    }
     this.logger.log(
-      `🟢 Client connected: socketId=${client.id}, userId=${client.data.user.userId}`,
+      `🟢 Client connected: socketId=${client.id}, userId=${user.userId}`,
     );
   }
 

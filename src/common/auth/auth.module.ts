@@ -40,7 +40,7 @@ import type { Algorithm } from 'jsonwebtoken';
         } else {
           const secretBase64 = config.get<string>('JWT_SECRET_BASE64');
           const secret = Buffer.from(secretBase64, 'base64').toString('utf8');
-          const algorithm = config.get<Algorithm>('JWT_ALGORITHM', 'HS256');
+          const algorithm = config.get<Algorithm>('JWT_ALGORITHM');
           return {
             secret,
             signOptions: { algorithm },

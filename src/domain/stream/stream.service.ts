@@ -40,9 +40,10 @@ export class StreamService {
   async createStream(
     dto: CreateStreamRequestDto,
     userId: number,
+    authToken: string,
   ): Promise<StreamResponseDto> {
     // 1) 사용자 존재 확인
-    const user = await this.findUserByUserId(userId);
+    const user = await this.findUserByUserId(userId, authToken);
     this.verifyExistUser(user);
 
     // 2) 동일 유저 LIVE 스트림 중복 검사
@@ -99,8 +100,9 @@ export class StreamService {
   async endStream(
     streamId: number,
     userId: number,
+    authToken: string,
   ): Promise<StreamResponseDto> {
-    const user = await this.findUserByUserId(userId);
+    const user = await this.findUserByUserId(userId, authToken);
     this.verifyExistUser(user);
 
     // 2) 스트리밍 종료
@@ -231,13 +233,17 @@ export class StreamService {
    * 사용자 존재 여부 확인
    * @param userId
    */
-  private async findUserByUserId(id: number) {
+  private async findUserByUserId(id: number, authToken: string) {
     const authBaseUrl = this.config.get<string>('AUTH_SERVER_URL');
     const authUrl = `${authBaseUrl}/user/${id}`;
     this.logger.log(`🟣 Auth 서버에 사용자 정보 요청: ${authUrl}`);
+    this.logger.log(`🟣 사용자 ID: ${id}, 인증 토큰: ${authToken}`);
+    const headers = { Authorization: authToken };
     try {
       // const resp$ = this.http.get(`/user/${id}`);
-      const { data } = await firstValueFrom(this.http.get(authUrl));
+      const { data } = await firstValueFrom(
+        this.http.get(authUrl, { headers }),
+      );
       this.logger.log(`🟣 Auth 서버에서 사용자 정보 응답: ${data}`);
       return data;
     } catch (err) {

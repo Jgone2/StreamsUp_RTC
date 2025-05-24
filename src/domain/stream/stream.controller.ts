@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  Headers,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { StreamService } from './stream.service';
@@ -29,11 +30,13 @@ export class StreamController {
     @UploadedFile() thumbnailFile: Express.Multer.File,
     @Body() createStreamDto: CreateStreamRequestDto,
     @LoginUser('userId') userId: number,
+    @Headers('authorization') authToken: string,
   ) {
     console.log(`userId: ${userId}`);
     return this.streamService.createStream(
       { ...createStreamDto, thumbnailFile },
       userId,
+      authToken,
     );
   }
 
@@ -43,8 +46,9 @@ export class StreamController {
   async endStream(
     @Param('streamId') streamId: string,
     @LoginUser('userId') userId: number,
+    @Headers('authorization') authToken: string,
   ) {
-    return this.streamService.endStream(+streamId, userId);
+    return this.streamService.endStream(+streamId, userId, authToken);
   }
 
   @Get(':streamId')

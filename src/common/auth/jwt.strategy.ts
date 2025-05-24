@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 import {
   JwksClient,
   // SigningKey
@@ -23,7 +24,11 @@ import { ConfigService } from '@nestjs/config';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(config: ConfigService) {
     const jwksUri = config.get<string>('JWKS_URI');
-    const jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+    const baseExtractor = ExtractJwt.fromAuthHeaderAsBearerToken();
+    const jwtFromRequest = (req: Request) => {
+      const token = baseExtractor(req);
+      return !token || token === 'null' || token === 'undefined' ? null : token;
+    };
     if (jwksUri) {
       const jwks = new JwksClient({
         jwksUri,

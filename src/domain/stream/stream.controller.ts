@@ -37,7 +37,7 @@ export class StreamController {
     );
   }
 
-  @Post(':streamId')
+  @Post(':streamId/end')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async endStream(
@@ -51,6 +51,16 @@ export class StreamController {
   @HttpCode(HttpStatus.OK)
   getStreamStatus(@Param('streamId') streamId: string) {
     return this.streamService.findStreamById(+streamId);
+  }
+
+  @Post(':streamId/leave')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async leaveStream(
+    @Param('streamId') streamId: string,
+    @LoginUser('userId') userId: number,
+  ) {
+    await this.streamService.leaveStream(+streamId, userId);
   }
 
   /*@Get()

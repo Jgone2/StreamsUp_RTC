@@ -29,6 +29,7 @@ export class WsJwtGuard implements CanActivate {
 
     // 2) 토큰 추출
     const token =
+      client.handshake.auth?.accessToken ??
       client.handshake.auth?.token ??
       (() => {
         const authHeader = client.handshake.headers.authorization;
@@ -42,7 +43,7 @@ export class WsJwtGuard implements CanActivate {
       })();
 
     // 3) 토큰 미제공 시 거부
-    if (!token) {
+    if (!token || token === 'null' || token === 'undefined') {
       this.logger.warn('🔴 WebSocket token not provided');
       throw new UnauthorizedException('WebSocket token not provided');
     }

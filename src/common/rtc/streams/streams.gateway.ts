@@ -4,10 +4,10 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
-  WebSocketGateway,
+  WebSocketGateway, WebSocketServer,
 } from '@nestjs/websockets';
 import { Logger, UseGuards } from '@nestjs/common';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { SignalPayload } from './dto/signal-payload';
 import { StreamFacade } from '../../../domain/stream/stream.facade';
 import { WsJwtGuard } from '../../auth/guard/ws-jwt.guard';
@@ -34,26 +34,22 @@ export class StreamsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   constructor(private readonly streamFacade: StreamFacade) {}
+  @WebSocketServer() private readonly server: Server;
   private readonly logger = new Logger(StreamsGateway.name);
 
   /**
    * handleConnection
    * - WebSocket 클라이언트가 connect() 호출해서 연결될 때 자동 실행
-   * - 여기선 인증(Guard) 후에 client.data.user 에 심어진 userId 로
-   *   “누가 접속했는지” 로그를 남김
+   * - Guards 실행 전 단계이므로 client.data.user가 비어있을 수 있다.
+   * - 실질적인 인증/권한 확인은 각 이벤트(@SubscribeMessage) 단계의 WsJwtGuard가 담당한다.
    */
   handleConnection(client: Socket): void {
-    const user = client.data?.user;
-    if (!user) {
-      this.logger.warn(
-        `🟠 Unauthenticated socket tried to connect: socketId=${client.id}`,
-      );
-      client.disconnect(true);
-      return;
-    }
+    // 아직 Guards 가 실행되기 전 단계이므로 client.data.user 가 비어있을 수 있다.
     this.logger.log(
-      `🟢 Client connected: socketId=${client.id}, userId=${user.userId}`,
+      `✅ Client connected: socketId=${client.data}, ip=${client.handshake.address}`,
     );
+    // 실질적인 인증/권한 확인은 각 이벤트(@SubscribeMessage) 단계의 WsJwtGuard 가 담당한다.
+    this.logger.log(`🟢 Client connected: socketId=${client.id}`);
   }
 
   /**
@@ -63,8 +59,9 @@ export class StreamsGateway
    *   여기서 로그 남기고 필요한 방 클린업을 수행 가능
    */
   handleDisconnect(client: Socket): void {
+    const userId = client.data?.user?.userId ?? 'unknown';
     this.logger.log(
-      `🟣 Client disconnected: socketId=${client.id}, userId=${client.data.user.userId}`,
+      `🟣 Client disconnected: socketId=${client.id}, userId=${userId}`,
     );
     // 예: client.rooms.forEach(room => client.leave(room));
   }
@@ -78,14 +75,36 @@ export class StreamsGateway
   @SubscribeMessage('join')
   async handleJoin(
     @ConnectedSocket() client: Socket,
-    @MessageBody('streamId') streamId: number,
+    @MessageBody('streamId') streamId: string | number,
   ): Promise<void> {
+    const id = Number(streamId);
+    if (Number.isNaN(id)) {
+      this.logger.warn(
+        `🔴 Invalid streamId received: "${streamId}" from socketId=${client.id}`,
+      );
+      client.disconnect(true);
+      return;
+    }
+    this.logger.debug(`Parsed streamId: ${id} (original: ${streamId})`);
     // 스트림 존재 여부 확인
-    await this.streamFacade.findStreamById(streamId);
-    const room = `stream-${streamId}`;
+    await this.streamFacade.findStreamById(id);
+    const room = `stream-${id}`;
+    if (!client.data?.user) {
+      this.logger.warn(
+        `🔴 Unauthorized join attempt: socketId=${client.id}, streamId=${id}`,
+      );
+      client.disconnect(true);
+      return;
+    }
     client.join(room);
     this.logger.log(`User ${client.data.user.userId} joined room ${room}`);
-    client.emit('joined', { streamId });
+    client.emit('joined', { streamId: id });
+
+    // 방에 있는 모든(=스트리머 포함) 소켓에게 뷰어 입장 신호
+    this.server.to(room).emit('viewer-joined', {
+      streamId: id,
+      viewerId: client.data.user.userId,
+    });
   }
 
   /**

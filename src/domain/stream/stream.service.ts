@@ -266,6 +266,58 @@ export class StreamService {
   }
 
   /**
+   * 시청자(또는 스트리머)가 스트림에서 퇴장할 때 호출됩니다.
+   *
+   * 현재는 별도 viewer 테이블이 없으므로
+   * 1) 스트림 존재 여부만 검증하고
+   * 2) 로그를 남기는 수준으로 처리합니다.
+   *    └ 추후 viewer count 감소 · 로그 적재가 필요하면 이 메서드에서 확장하세요.
+   *
+   * @param streamId 스트림 ID
+   * @param userId   사용자 ID
+   */
+  async leaveStream(streamId: number, userId: number): Promise<void> {
+    // 1) 스트림 + 스트리머 ID 확인
+    const stream = await this.prisma.stream.findUnique({
+      where: { id: streamId },
+      select: { id: true, userId: true, status: true },
+    });
+
+    if (!stream) {
+      this.logger.warn(`Stream ${streamId} not found`);
+      throw new NotFoundException(`Stream ${streamId} not found`);
+    }
+
+    // 2) **스트리머가 직접 퇴장** → 방송 종료 처리
+    if (stream.userId === userId) {
+      if (stream.status !== StreamStatus.FINISHED) {
+        await this.prisma.stream.update({
+          where: { id: streamId },
+          data: {
+            status: StreamStatus.FINISHED,
+            endedAt: new Date(),
+          },
+        });
+        this.logger.log(
+          `Streamer ${userId} finished stream ${streamId} (set FINISHED)`,
+        );
+      } else {
+        this.logger.debug(
+          `Stream ${streamId} already finished by streamer ${userId}`,
+        );
+      }
+      return;
+    }
+
+    this.logger.log(`Viewer ${userId} left stream ${streamId}`);
+  }
+
+  // --- 기존 TODO 자리 ---
+  private async liveStream() {
+    /* 구현 예정 */
+  }
+
+  /**
    * 동일 유저 LIVE 스트림 중복 검사
    * @param userId
    */

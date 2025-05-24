@@ -17,17 +17,17 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // --- WebSocket 핸드셰이크 인증 미들웨어 등록 시작 ---
-  const jwtService = app.get(JwtService);
-  const configService = app.get(ConfigService);
-  app.useWebSocketAdapter(
-    new (class extends IoAdapter {
-      createIOServer(port: number, options?: any) {
-        const server = super.createIOServer(port, options);
-        server.use(wsAuthMiddleware(jwtService, configService));
-        return server;
-      }
-    })(app),
-  );
+  // const jwtService = app.get(JwtService);
+  // const configService = app.get(ConfigService);
+  // app.useWebSocketAdapter(
+  //   new (class extends IoAdapter {
+  //     createIOServer(port: number, options?: any) {
+  //       const server = super.createIOServer(port, options);
+  //       server.use(wsAuthMiddleware(jwtService, configService));
+  //       return server;
+  //     }
+  //   })(app),
+  // );
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -25,7 +25,14 @@ export function wsAuthMiddleware(
     logger.debug(`Auth payload: ${JSON.stringify(socket.handshake.auth)}`);
 
     // 1) 토큰 꺼내기
-    const token = socket.handshake.auth?.token;
+    const auth = socket.handshake.auth || {};
+    const token =
+      auth.token ??
+      auth.accessToken ?? // <- 추가
+      (() => {
+        const h = socket.handshake.headers.authorization as string;
+        return h?.toLowerCase().startsWith('bearer ') && h.slice(7);
+      })();
     if (!token) {
       logger.warn('Token not provided in handshake.auth.token');
       return next(new Error('Unauthorized: token not provided'));

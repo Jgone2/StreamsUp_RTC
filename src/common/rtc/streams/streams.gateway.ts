@@ -16,9 +16,20 @@ import { SignalPayload } from './dto/signal-payload';
 import { StreamFacade } from '../../../domain/stream/stream.facade';
 import { WsJwtGuard } from '../../auth/guard/ws-jwt.guard';
 import { ConfigService } from '@nestjs/config';
+import { Counter } from 'prom-client';
 
 const AUTH_URL = process.env.AUTH_SERVER_URL;
 const FRONT_URL = process.env.FRONT_URL;
+
+const wsConnects = new Counter({
+  name: 'ws_connections_total',
+  help: 'Total websocket connections',
+});
+
+const chatMessages = new Counter({
+  name: 'chat_messages_total',
+  help: 'Total chat messages received',
+});
 /**
  * StreamsGateway
  * - namespace '/rtc' 로 WebSocket 연결을 받음
@@ -41,7 +52,13 @@ export class StreamsGateway
   constructor(
     private readonly streamFacade: StreamFacade,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    // WebSocket 연결 수 카운터 초기화
+    wsConnects.reset();
+    chatMessages.reset();
+    wsConnects.inc(0); // 초기값 설정
+    chatMessages.inc(0); // 초기값 설정
+  }
 
   // WebSocket 서버 인스턴스
   @WebSocketServer() private readonly server: Server;
@@ -56,17 +73,17 @@ export class StreamsGateway
    * - Redis pub/sub 클라이언트를 생성하고 연결
    */
   async afterInit(server: Server): Promise<void> {
-    // ① env 읽기
+    // 환경변수 에서 Redis 설정 가져오기
     const host = this.config.get<string>('REDIS_HOST');
     const port = Number(this.config.get<string>('REDIS_PORT'));
     const password = this.config.get<string>('REDIS_PASSWORD');
 
-    // ② pub / sub 클라이언트 생성
+    // pub / sub 클라이언트 생성
     this.pubClient = createClient({ socket: { host, port }, password });
     this.subClient = this.pubClient.duplicate();
 
     try {
-      // ③ 두 클라이언트 모두 연결
+      // 두 클라이언트 모두 연결
       await Promise.all([this.pubClient.connect(), this.subClient.connect()]);
       this.logger.log('✅ Redis connected (pub / sub)');
     } catch (err) {
@@ -92,10 +109,7 @@ export class StreamsGateway
       ioServer.adapter = redisAdapter;
     }
 
-    /**
-     * 2) 이미 생성된 네임스페이스(예: 'streams')에도 직접 주입
-     *    - createAdapter 가 반환하는 함수는 (nsp) => adapterInstance 형태
-     */
+    // 이미 생성된 네임스페이스(예: 'streams')에도 직접 주입
     ioServer._nsps?.forEach((nsp) => {
       nsp.adapter = redisAdapter(nsp);
     });
@@ -110,12 +124,13 @@ export class StreamsGateway
    * - 실질적인 인증/권한 확인은 각 이벤트(@SubscribeMessage) 단계의 WsJwtGuard가 담당한다.
    */
   handleConnection(client: Socket): void {
-    // 아직 Guards 가 실행되기 전 단계이므로 client.data.user 가 비어있을 수 있다.
+    // 아직 Guards 가 실행되기 전 단계(user 정보 없음)
     this.logger.log(
       `✅ Client connected: socketId=${client.data}, ip=${client.handshake.address}`,
     );
     // 실질적인 인증/권한 확인은 각 이벤트(@SubscribeMessage) 단계의 WsJwtGuard 가 담당한다.
     this.logger.log(`🟢 Client connected: socketId=${client.id}`);
+    wsConnects.inc(); // WebSocket 연결 수 증가
   }
 
   /**
@@ -320,6 +335,7 @@ export class StreamsGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { streamId: number; text: string },
   ): Promise<void> {
+    chatMessages.inc(); // 채팅 메시지 카운트 증가
     const { streamId, text } = data;
     const userId = client.data.user.userId;
     const timestamp = new Date().toISOString();

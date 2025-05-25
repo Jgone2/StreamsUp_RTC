@@ -10,6 +10,7 @@ import { CorsMiddleware } from './common/middleware/cors.middleware';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import { MetricsInterceptor } from './common/http/interceptor/metrics.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -46,7 +47,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector)),
+    new MetricsInterceptor(app.get(ConfigService)),
+  );
 
   // ConfigService로 PORT 가져오기 (없으면 3000)
   const config = app.get(ConfigService);

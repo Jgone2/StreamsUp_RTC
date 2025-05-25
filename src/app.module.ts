@@ -7,6 +7,7 @@ import { StreamModule } from './domain/stream/stream.module';
 import { StreamTagModule } from './domain/stream-tag/stream-tag.module';
 import { AuthModule } from './common/auth/auth.module';
 import { HttpModule } from './common/http/http.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
@@ -20,6 +21,12 @@ import { HttpModule } from './common/http/http.module';
     AuthModule,
     StreamModule,
     StreamTagModule,
+    PrometheusModule.register({
+      path: '/metrics',
+      defaultMetrics: {
+        enabled: true,
+      },
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],

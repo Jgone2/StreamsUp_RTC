@@ -125,7 +125,7 @@ export class StreamsGateway
    *   여기서 로그 남기고 필요한 방 클린업을 수행 가능
    */
   handleDisconnect(client: Socket): void {
-    const userId = client.data?.user?.userId ?? 'unknown';
+    const userId = client.data?.user?.userId;
     this.logger.log(
       `🟣 Client disconnected: socketId=${client.id}, userId=${userId}`,
     );
@@ -142,11 +142,13 @@ export class StreamsGateway
           );
           return; // 스트림 조회 실패 시 무시
         }
-        this.updateViewerCount(id, client.id, userId, false).catch(() => {
-          this.logger.error(
-            `🟣 Failed to update viewer count for stream ${id} on disconnect`,
-          );
-        });
+        if (Number.isFinite(userId)) {
+          await this.updateViewerCount(id, client.id, userId, false).catch(() => {
+            this.logger.error(
+              `🟣 Failed to update viewer count for stream ${id} on disconnect`,
+            );
+          });
+        }
       }
     });
   }
@@ -243,9 +245,11 @@ export class StreamsGateway
     // ────────────────────────────────────────────
     if (!isOwner) {
       /* userId 를 넘겨서 중복-소켓을 정확히 정리 */
-      this.updateViewerCount(streamId, client.id, userId, false).catch((err) =>
-        this.logger.error(`🔴 Failed to update viewer count: ${err.message}`),
-      );
+      if (Number.isFinite(userId)) {
+        await this.updateViewerCount(streamId, client.id, userId, false).catch((err) =>
+          this.logger.error(`🔴 Failed to update viewer count: ${err.message}`),
+        );
+      }
     }
 
     const room = `stream-${streamId}`;
@@ -308,6 +312,22 @@ export class StreamsGateway
   }
 
   /**
+   * @SubscribeMessage('chat-message')
+   * - 클라이언트가 보낸 채팅 메시지를 동일한 stream 룸에 브로드캐스트
+   */
+  @SubscribeMessage('chat-message')
+  async handleChatMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { streamId: number; text: string },
+  ): Promise<void> {
+    const { streamId, text } = data;
+    const userId = client.data.user.userId;
+    const timestamp = new Date().toISOString();
+    const room = `stream-${streamId}`;
+    this.server.to(room).emit('chat-message', { userId, text, timestamp });
+  }
+
+  /**
    * updateViewerCount
    * - 스트림 방에 참여(join)하거나 나갈 때(viewer leave) 뷰어 수를 업데이트
    * - Redis를 사용하여 스트림별 뷰어 소켓 ID를 관리
@@ -323,7 +343,7 @@ export class StreamsGateway
     userId: number,
     join = true,
   ) {
-    if (!userId) return; // 비정상 연결 방지
+    if (!Number.isFinite(userId)) return; // 비정상 연결 방지
 
     const key = `stream:${streamId}:viewers`; // 소켓 ID 집합
     const userKey = `stream:${streamId}:user:${userId}`; // userId ↔ socketId 매핑
@@ -341,7 +361,10 @@ export class StreamsGateway
     } else {
       // 퇴장 정리
       await this.pubClient.sRem(key, socketId);
-      await this.pubClient.del(userKey);
+      const current = await this.pubClient.get(userKey);
+      if (current === socketId) {
+        await this.pubClient.del(userKey);
+      }
     }
 
     // 최종 시청자 수 브로드캐스트

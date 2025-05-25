@@ -7,27 +7,37 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { CorsMiddleware } from './common/middleware/cors.middleware';
-import { JwtService } from '@nestjs/jwt';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { wsAuthMiddleware } from './common/middleware/ws-auth.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(new CorsMiddleware().use);
   app.setGlobalPrefix('api');
 
-  // --- WebSocket 핸드셰이크 인증 미들웨어 등록 시작 ---
-  // const jwtService = app.get(JwtService);
-  // const configService = app.get(ConfigService);
-  // app.useWebSocketAdapter(
-  //   new (class extends IoAdapter {
-  //     createIOServer(port: number, options?: any) {
-  //       const server = super.createIOServer(port, options);
-  //       server.use(wsAuthMiddleware(jwtService, configService));
-  //       return server;
-  //     }
-  //   })(app),
-  // );
+  // Redis 연결 설정
+  const redisHost = process.env.REDIS_HOST || 'redis';
+  const redisPort = Number(process.env.REDIS_PORT || '6379');
+  const redisPass = process.env.REDIS_PASSWORD;
+  const pubClient = createClient({
+    socket: { host: redisHost, port: redisPort },
+    password: redisPass,
+  });
+  const subClient = pubClient.duplicate();
+  await pubClient.connect();
+  await subClient.connect();
+  const redisAdapter = createAdapter(pubClient, subClient);
+
+  app.useWebSocketAdapter(
+    new (class extends IoAdapter {
+      createIOServer(port: number, options?: any) {
+        const server = super.createIOServer(port, options);
+        server.adapter(redisAdapter);
+        return server;
+      }
+    })(app),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({

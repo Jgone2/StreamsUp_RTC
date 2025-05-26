@@ -233,43 +233,99 @@ export class StreamService {
    * 사용자 존재 여부 확인
    * @param userId
    */
+  // private async findUserByUserId(id: number, authToken: string) {
+  //   const authBaseUrl = this.config.get<string>('AUTH_SERVER_URL');
+  //   const authUrl = `${authBaseUrl}/user/${id}`;
+  //   this.logger.log(`🟣 Auth 서버에 사용자 정보 요청: ${authUrl}`);
+  //   this.logger.log(`🟣 사용자 ID: ${id}, 인증 토큰: ${authToken}`);
+  //   const headers = { Authorization: authToken };
+  //   try {
+  //     // const resp$ = this.http.get(`/user/${id}`);
+  //     const { data } = await firstValueFrom(
+  //       this.http.get(authUrl, { headers }),
+  //     );
+  //     this.logger.log(`🟣 Auth 서버에서 사용자 정보 응답: ${data}`);
+  //     return data;
+  //   } catch (err) {
+  //     if (isAxiosError(err)) {
+  //       const status = err.response?.status;
+  //       // -------------------------------
+  //       // 401 Unauthorized
+  //       if (status === 401) {
+  //         throw new UnauthorizedException('Auth 서버 인증 실패 (401)');
+  //       }
+  //       // 404 Not Found
+  //       if (status === 404) {
+  //         throw new NotFoundException(`User ${id} not found`);
+  //       }
+  //       // 그 외 (500, 403 등)
+  //       const code = status ?? 500;
+  //       throw new HttpException(
+  //         `Auth 서버 에러 (${code}), (${err.message})`,
+  //         code,
+  //       );
+  //     }
+  //     // Axios 가 아닌 예기치 못한 에러
+  //     this.logger.error(`🟣 ${err}`);
+  //     throw new InternalServerErrorException('내부 서버 오류');
+  //   }
+  // }
+
   private async findUserByUserId(id: number, authToken: string) {
-    const authBaseUrl = this.config.get<string>('AUTH_SERVER_URL');
-    const authUrl = `${authBaseUrl}/user/${id}`;
-    this.logger.log(`🟣 Auth 서버에 사용자 정보 요청: ${authUrl}`);
-    this.logger.log(`🟣 사용자 ID: ${id}, 인증 토큰: ${authToken}`);
-    const headers = { Authorization: authToken };
-    try {
-      // const resp$ = this.http.get(`/user/${id}`);
-      const { data } = await firstValueFrom(
-        this.http.get(authUrl, { headers }),
-      );
-      this.logger.log(`🟣 Auth 서버에서 사용자 정보 응답: ${data}`);
-      return data;
-    } catch (err) {
-      if (isAxiosError(err)) {
-        const status = err.response?.status;
-        // -------------------------------
-        // 401 Unauthorized
-        if (status === 401) {
-          throw new UnauthorizedException('Auth 서버 인증 실패 (401)');
-        }
-        // 404 Not Found
-        if (status === 404) {
-          throw new NotFoundException(`User ${id} not found`);
-        }
-        // 그 외 (500, 403 등)
-        const code = status ?? 500;
-        throw new HttpException(
-          `Auth 서버 에러 (${code}), (${err.message})`,
-          code,
-        );
-      }
-      // Axios 가 아닌 예기치 못한 에러
-      this.logger.error(`🟣 ${err}`);
-      throw new InternalServerErrorException('내부 서버 오류');
+  const authBaseUrl = this.config.get<string>('AUTH_SERVER_URL');
+  const authUrl = `${authBaseUrl}/user/${id}`;
+  this.logger.log(`🟣 Auth 서버에 사용자 정보 요청: ${authUrl}`);
+  this.logger.log(`🟣 사용자 ID: ${id}, 인증 토큰: ${authToken}`);
+
+  try {
+    // 전체 응답 객체를 받고
+    const response = await firstValueFrom(
+      this.http.get(authUrl, {
+        headers: { Authorization: authToken },
+      }),
+    );
+
+    // data를 JSON 문자열로 로깅
+    this.logger.log(
+      `🟣 Auth 서버에서 받은 원시 응답: ${JSON.stringify(response.data)}`,
+    );
+
+    // 혹시 response.data 구조가 { data: {...} }라면 아래처럼 꺼내고
+    // const user = response.data.data ?? response.data;
+    const user = response.data;
+
+    if (!user) {
+      this.logger.error(`❌ 사용자 정보가 비어있습니다: ${JSON.stringify(response.data)}`);
+      throw new NotFoundException(`User ${id} returned empty from Auth server`);
     }
+
+    return user;
+  } catch (err) {
+    if (isAxiosError(err)) {
+      const status = err.response?.status;
+      // 401 Unauthorized
+      if (status === 401) {
+        throw new UnauthorizedException('Auth 서버 인증 실패 (401)');
+      }
+      // 404 Not Found
+      if (status === 404) {
+        throw new NotFoundException(`User ${id} not found`);
+      }
+      // 그 외(500,403 등)
+      const code = status ?? 500;
+      this.logger.error(
+        `❌ Auth 서버 에러 (${code}): ${JSON.stringify(err.response?.data) || err.message}`,
+      );
+      throw new HttpException(
+        `Auth 서버 에러 (${code}): ${err.message}`,
+        code,
+      );
+    }
+    // Axios 외 예기치 못한 에러
+    this.logger.error(`❌ 알 수 없는 에러: ${err}`, err.stack);
+    throw new InternalServerErrorException('내부 서버 오류');
   }
+}
 
   /**
    * 시청자(또는 스트리머)가 스트림에서 퇴장할 때 호출됩니다.

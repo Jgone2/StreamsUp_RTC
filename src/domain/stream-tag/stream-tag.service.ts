@@ -1,26 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { CreateStreamTagDto } from './dto/create-stream-tag.dto';
-import { UpdateStreamTagDto } from './dto/update-stream-tag.dto';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
 export class StreamTagService {
-  create(createStreamTagDto: CreateStreamTagDto) {
-    return 'This action adds a new streamTag';
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return `This action returns all streamTag`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} streamTag`;
-  }
-
-  update(id: number, updateStreamTagDto: UpdateStreamTagDto) {
-    return `This action updates a #${id} streamTag`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} streamTag`;
+  async findStreamTagInfoByStreamId(streamId: number) {
+    const streamTag = await this.prisma.streamTag.findMany({
+      where: {
+        streamId,
+      },
+      select: {
+        tagName: true,
+      },
+    });
+    return streamTag.map((tag) => tag.tagName);
   }
 }

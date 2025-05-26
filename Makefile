@@ -39,8 +39,8 @@ docker-down:
 	docker-compose down -v
 
 docker-clean-image:
-	#docker rmi -f ssafricatv-app || true
-	#docker rmi -f be_rtc-app || true
+	docker rmi -f ssafricatv-app || true
+	docker rmi -f be_rtc-app || true
 
 fclean: clean docker-down docker-clean-image
 	docker network rm socket-network || true

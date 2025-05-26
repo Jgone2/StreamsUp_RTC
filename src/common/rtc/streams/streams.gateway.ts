@@ -231,6 +231,16 @@ export class StreamsGateway
     if (!isOwner) {
       await this.updateViewerCount(id, client.id, userId, true);
     }
+
+    // 스트리머에게 현재 시청자 수 알려 주기
+    const key = `stream:${streamId}:viewers`;
+    const cnt = await this.pubClient.sCard(key);
+    client.emit('viewer-count', cnt);
+
+    client.emit('joined', { streamId });
+    // (기존 viewer-joined 브로드캐스트도 그대로)
+    this.server.to(room).emit('viewer-joined', { streamId, viewerId: userId });
+
     client.emit('joined', { streamId: id });
 
     // 방에 있는 모든(=스트리머 포함) 소켓에게 뷰어 입장 신호
@@ -261,8 +271,11 @@ export class StreamsGateway
     if (!isOwner) {
       /* userId 를 넘겨서 중복-소켓을 정확히 정리 */
       if (Number.isFinite(userId)) {
-        await this.updateViewerCount(streamId, client.id, userId, false).catch((err) =>
-          this.logger.error(`🔴 Failed to update viewer count: ${err.message}`),
+        await this.updateViewerCount(streamId, client.id, userId, false).catch(
+          (err) =>
+            this.logger.error(
+              `🔴 Failed to update viewer count: ${err.message}`,
+            ),
         );
       }
     }

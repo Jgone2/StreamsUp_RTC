@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
@@ -64,8 +64,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @returns validated user info (req.user에 할당)
    */
   async validate(payload: any) {
+    if (!payload?.sub || !payload?.userId) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
     console.log('[JwtStrategy] validate payload:', payload);
     // payload.sub가 문자열이면 Number()로 변환
-    return { userId: Number(payload.userId) };
+    return {
+      userId: Number(payload.userId),
+      username: payload.sub,
+    };
   }
 }

@@ -338,9 +338,17 @@ export class StreamsGateway
     chatMessages.inc(); // 채팅 메시지 카운트 증가
     const { streamId, text } = data;
     const userId = client.data.user.userId;
+    const username = client.data.user.sub;
     const timestamp = new Date().toISOString();
     const room = `stream-${streamId}`;
-    this.server.to(room).emit('chat-message', { userId, text, timestamp });
+
+    // 이제 username 과 userId, text, timestamp 를 함께 emit
+    this.server.to(room).emit('chat-message', {
+      userId,
+      username,
+      text,
+      timestamp,
+    });
   }
 
   /**
